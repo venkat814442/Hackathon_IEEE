@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Directive Intelligence Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .wrapper {
+            max-width: 1000px;
+            margin: auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #e0e7ff;
+        }
+
+        .upload-section {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .file-display {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #facc15;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 10px 25px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #059669;
+        }
+
+        .status {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .results {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            color: black;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .do { border-top: 5px solid #16a34a; }
+        .dont { border-top: 5px solid #dc2626; }
+        .guide { border-top: 5px solid #f59e0b; }
+        .deadline { border-top: 5px solid #3b82f6; }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="wrapper">
+
+    <h1>🚀 Directive Intelligence Dashboard</h1>
+    <p class="subtitle">Upload a directive document to extract actionable insights</p>
+
+    <div class="upload-section">
+        <input type="file" id="fileInput" accept=".pdf" onchange="storeFile()">
+        <div id="fileNameDisplay" class="file-display">No file selected</div>
+        <button type="button" onclick="uploadFile()">Analyze Document</button>
+        <div id="status" class="status"></div>
+    </div>
+
+    <div class="results">
+
+        <div class="card do">
+            <h2>✅ DO</h2>
+            <ul id="dos"></ul>
+        </div>
+
+        <div class="card dont">
+            <h2>❌ DON'T</h2>
+            <ul id="donts"></ul>
+        </div>
+
+        <div class="card guide">
+            <h2>⚠ GUIDELINES</h2>
+            <ul id="guidelines"></ul>
+        </div>
+
+        <div class="card deadline">
+            <h2>📅 DEADLINES</h2>
+            <ul id="deadlines"></ul>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+let selectedFile = null;
+
+// Store file safely
+function storeFile() {
+    const fileInput = document.getElementById("fileInput");
+    selectedFile = fileInput.files[0];
+
+    updateFileDisplay();
+}
+
+// Always update file display manually
+function updateFileDisplay() {
+    const display = document.getElementById("fileNameDisplay");
+
+    if (selectedFile) {
+        display.innerText =
+            "📄 " + selectedFile.name +
+            " (" + (selectedFile.size / 1024).toFixed(1) + " KB)";
+    } else {
+        display.innerText = "No file selected";
+    }
+}
+
+async function uploadFile() {
+    const status = document.getElementById("status");
+
+    if (!selectedFile) {
+        alert("Please select a PDF file.");
+        return;
+    }
+
+    status.innerText = "🔄 Processing document...";
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/analyze/", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+        displayResults(data);
+
+        status.innerText = "✅ Analysis Complete";
+
+        // IMPORTANT FIX:
+        // Reset file input but keep selectedFile stored
+        const fileInput = document.getElementById("fileInput");
+        fileInput.value = "";
+
+        // Re-show stored file
+        updateFileDisplay();
+
+    } catch (error) {
+        status.innerText = "❌ Backend Connection Error";
+        console.error(error);
+    }
+}
+
+function displayResults(data) {
+    document.getElementById("dos").innerHTML =
+        data.dos.length ? data.dos.map(i => `<li>${i}</li>`).join("") : "<li>No directives found</li>";
+
+    document.getElementById("donts").innerHTML =
+        data.donts.length ? data.donts.map(i => `<li>${i}</li>`).join("") : "<li>No restrictions found</li>";
+
+    document.getElementById("guidelines").innerHTML =
+        data.guidelines.length ? data.guidelines.map(i => `<li>${i}</li>`).join("") : "<li>No guidelines found</li>";
+
+    document.getElementById("deadlines").innerHTML =
+        data.deadlines.length ? data.deadlines.map(i => `<li>${i}</li>`).join("") : "<li>No deadlines found</li>";
+}
+
+</script>
+
+</body>
+</html>
